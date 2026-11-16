@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#F5F6FA">
+  <meta name="description" content="A local SMS chat prototype with offline support.">
+  <title>SMS Chat · 7001</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./assets/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <main class="app-shell" id="app-shell">
+    <header class="chat-header">
+      <button class="icon-button back-button" type="button" aria-label="Back">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 12a4.25 4.25 0 1 0 0-8.5A4.25 4.25 0 0 0 12 12Zm0 2c-4.35 0-7.5 2.2-7.5 5.1V21h15v-1.9c0-2.9-3.15-5.1-7.5-5.1Z"/></svg></div>
+      <div class="contact-copy">
+        <h1>7001</h1>
+        <p>SMS ticket service</p>
+      </div>
+      <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Conversation options" aria-haspopup="dialog" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+      </button>
+    </header>
+
+    <section class="conversation" aria-label="Conversation with 7001">
+      <div class="date-divider"><span>Today</span></div>
+      <div class="message-list" id="message-list" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Messages"></div>
+      <div class="empty-state" id="empty-state" hidden>
+        <div class="empty-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M9 10.5h30a4.5 4.5 0 0 1 4.5 4.5v16a4.5 4.5 0 0 1-4.5 4.5H22l-9 7v-7h-4A4.5 4.5 0 0 1 4.5 31V15A4.5 4.5 0 0 1 9 10.5Z"/></svg>
+        </div>
+        <p>No messages yet</p>
+        <span>Send a message to start the conversation.</span>
+      </div>
+    </section>
+
+    <form class="composer" id="message-form" autocomplete="off">
+      <button class="icon-button attach-button" type="button" aria-label="Attach a file">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.5 12.5 6.8-6.8a3 3 0 0 1 4.2 4.2l-9.2 9.2a5 5 0 0 1-7.1-7.1l9.2-9.2"/></svg>
+      </button>
+      <div class="composer-field">
+        <textarea id="message-input" rows="1" maxlength="2000" placeholder="Text message" aria-label="Text message" enterkeyhint="send"></textarea>
+        <button class="icon-button emoji-button" type="button" aria-label="Emoji">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.2s1.2 2 3.5 2 3.5-2 3.5-2M9 9.4h.01M15 9.4h.01"/></svg>
+        </button>
+      </div>
+      <button class="send-button" id="send-button" type="submit" aria-label="Send message" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4l-5.7 16-2.5-6-7.8-2.5Zm7.8 2.5L20 4"/></svg>
+      </button>
+    </form>
+  </main>
+
+  <dialog class="options-dialog" id="options-dialog" aria-labelledby="options-title">
+    <div class="dialog-heading">
+      <h2 id="options-title">Conversation options</h2>
+      <button class="icon-button dialog-close" id="close-menu" type="button" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <button class="reset-option" id="reset-button" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18m-2 0-.9 13.1a2 2 0 0 1-2 1.9H7.9a2 2 0 0 1-2-1.9L5 6m3 0V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m-6 4v7m4-7v7"/></svg>
+      Reset conversation
+    </button>
+  </dialog>
+
+  <script src="./js/app.js" defer></script>
+</body>
+</html>
