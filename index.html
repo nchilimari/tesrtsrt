@@ -18,8 +18,7 @@
       </button>
       <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 12a4.25 4.25 0 1 0 0-8.5A4.25 4.25 0 0 0 12 12Zm0 2c-4.35 0-7.5 2.2-7.5 5.1V21h15v-1.9c0-2.9-3.15-5.1-7.5-5.1Z"/></svg></div>
       <div class="contact-copy">
-        <h1>7001</h1>
-        <p>SMS ticket service</p>
+        <h1 id="contact-name">7001</h1>
       </div>
       <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Conversation options" aria-haspopup="dialog" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
@@ -27,7 +26,6 @@
     </header>
 
     <section class="conversation" aria-label="Conversation with 7001">
-      <div class="date-divider"><span>Today</span></div>
       <div class="message-list" id="message-list" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Messages"></div>
       <div class="empty-state" id="empty-state" hidden>
         <div class="empty-mark" aria-hidden="true">
@@ -61,7 +59,13 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <button class="reset-option" id="reset-button" type="button">
+    <form class="contact-editor" id="contact-form">
+      <label for="contact-input">Contact name or number</label>
+      <div class="contact-editor-row">
+        <input id="contact-input" type="text" maxlength="40" autocomplete="off" aria-label="Contact name or number" value="7001">
+        <button class="contact-save" type="submit">OK</button>
+      </div>
+    </form>    <button class="reset-option" id="reset-button" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18m-2 0-.9 13.1a2 2 0 0 1-2 1.9H7.9a2 2 0 0 1-2-1.9L5 6m3 0V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m-6 4v7m4-7v7"/></svg>
       Reset conversation
     </button>

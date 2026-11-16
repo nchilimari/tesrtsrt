@@ -2,6 +2,26 @@
   "use strict";
 
   const STORAGE_KEY = "sms-chat-prototype.messages.v1";
+  const CONTACT_STORAGE_KEY = "sms-chat-prototype.contact-name.v1";
+  const HISTORY_SEED_KEY = "sms-chat-prototype.history-seed.v1";
+  const OUTGOING_HISTORY_SEED_KEY = "sms-chat-prototype.history-outgoing-seed.v1";
+
+  function toDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function dateDaysAgo(days) {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    return date;
+  }
+
+  const TODAY_KEY = toDateKey(new Date());
+  const YESTERDAY_KEY = toDateKey(dateDaysAgo(1));
+  const DAY_BEFORE_YESTERDAY_KEY = toDateKey(dateDaysAgo(2));
   const INITIAL_MESSAGES = [
     { id: "seed-1", text: "Hey! How are you?", time: "09:15", outgoing: false },
     { id: "seed-2", text: "I'm good, thanks! How about you?", time: "09:16", outgoing: true },
@@ -22,32 +42,72 @@
   const optionsDialog = document.querySelector("#options-dialog");
   const closeMenuButton = document.querySelector("#close-menu");
   const resetButton = document.querySelector("#reset-button");
+  const contactForm = document.querySelector("#contact-form");
+  const contactInput = document.querySelector("#contact-input");
+  const contactHeading = document.querySelector("#contact-name");
+  const conversation = document.querySelector(".conversation");
+
+  function loadContactName() {
+    try {
+      return localStorage.getItem(CONTACT_STORAGE_KEY)?.trim() || "7001";
+    } catch {
+      return "7001";
+    }
+  }
+
+  function updateContactName(value) {
+    contactHeading.textContent = value;
+    conversation.setAttribute("aria-label", `Conversation with ${value}`);
+    document.title = `SMS Chat · ${value}`;
+  }
+
+  let contactName = loadContactName();
+  contactInput.value = contactName;
+  updateContactName(contactName);
   let messages = loadMessages();
 
   function loadMessages() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      const starterMessages = INITIAL_MESSAGES.map((message) => ({ ...message, date: TODAY_KEY }));
       if (stored === null) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_MESSAGES));
-        return INITIAL_MESSAGES.map((message) => ({ ...message }));
+        const seeded = [...createHistoricalMessages(), ...starterMessages];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+        localStorage.setItem(HISTORY_SEED_KEY, "true");
+        localStorage.setItem(OUTGOING_HISTORY_SEED_KEY, "true");
+        return seeded;
       }
+
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) throw new TypeError("Saved messages are invalid.");
-      return parsed.filter((message) =>
+      let restored = parsed.filter((message) =>
         message && typeof message.text === "string" && typeof message.time === "string" && typeof message.outgoing === "boolean"
       ).map((message) => ({
         id: typeof message.id === "string" ? message.id : createId(),
         text: message.text,
         time: message.time,
+        date: typeof message.date === "string" ? message.date : TODAY_KEY,
         outgoing: message.outgoing,
         underlineDateTime: message.underlineDateTime === true
       }));
+
+      if (localStorage.getItem(HISTORY_SEED_KEY) !== "true") {
+        restored = [...createHistoricalMessages(), ...restored];
+        localStorage.setItem(HISTORY_SEED_KEY, "true");
+        localStorage.setItem(OUTGOING_HISTORY_SEED_KEY, "true");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+      } else if (localStorage.getItem(OUTGOING_HISTORY_SEED_KEY) !== "true") {
+        restored = [...restored, ...createHistoricalOutgoingMessages()];
+        restored.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || (a.outgoing === b.outgoing ? 0 : a.outgoing ? -1 : 1));
+        localStorage.setItem(OUTGOING_HISTORY_SEED_KEY, "true");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+      }
+      return restored;
     } catch (error) {
       console.warn("Could not restore saved messages; using the starter conversation.", error);
-      return INITIAL_MESSAGES.map((message) => ({ ...message }));
+      return [...createHistoricalMessages(), ...INITIAL_MESSAGES.map((message) => ({ ...message, date: TODAY_KEY }))];
     }
   }
-
   function persistMessages() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
@@ -60,9 +120,28 @@
     return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
+  function dateLabel(date) {
+    if (date === TODAY_KEY) return "Astăzi";
+    if (date === YESTERDAY_KEY) return "Ieri";
+    if (date === DAY_BEFORE_YESTERDAY_KEY) return "Alaltăieri";
+    const [year, month, day] = date.split("-").map(Number);
+    return new Intl.DateTimeFormat("ro-MD", { day: "numeric", month: "long", year: "numeric" }).format(new Date(year, month - 1, day));
+  }
+
   function renderMessages() {
     const fragment = document.createDocumentFragment();
+    let previousDate = null;
     for (const message of messages) {
+      if (message.date !== previousDate) {
+        const divider = document.createElement("div");
+        divider.className = "date-divider";
+        const label = document.createElement("span");
+        label.textContent = dateLabel(message.date);
+        divider.append(label);
+        fragment.append(divider);
+        previousDate = message.date;
+      }
+
       const row = document.createElement("article");
       row.className = `message-row ${message.outgoing ? "outgoing" : "incoming"}`;
       const bubble = document.createElement("div");
@@ -75,11 +154,11 @@
         if (lines.length > 1) {
           text.append(document.createTextNode("\n"));
           const dateTimeLine = lines[1];
-          const label = "Data ";
-          if (dateTimeLine.startsWith(label)) {
-            text.append(document.createTextNode(label));
+          const dateLabelText = "Data ";
+          if (dateTimeLine.startsWith(dateLabelText)) {
+            text.append(document.createTextNode(dateLabelText));
             const underlinedDateTime = document.createElement("u");
-            underlinedDateTime.textContent = dateTimeLine.slice(label.length);
+            underlinedDateTime.textContent = dateTimeLine.slice(dateLabelText.length);
             text.append(underlinedDateTime);
           } else {
             const underlinedDateTime = document.createElement("u");
@@ -102,7 +181,6 @@
     emptyState.hidden = messages.length !== 0;
     list.setAttribute("aria-label", messages.length ? `${messages.length} messages` : "No messages");
   }
-
   function scrollToLatest(smooth = true) {
     requestAnimationFrame(() => {
       list.scrollTo({ top: list.scrollHeight, behavior: smooth ? "smooth" : "instant" });
@@ -144,16 +222,58 @@
   function createTicketReply(sentText, receivedAt) {
     const time = formatTime(receivedAt);
     const text = `Bilet electronic nr. 08${randomSevenDigitNumber()}\nData ${formatDate(receivedAt)} ora ${time}\nValabil 1 ora\nPret 7 MDL\nNumar de bord ${sentText}`;
-    return { id: createId(), text, time, outgoing: false, underlineDateTime: true };
+    return { id: createId(), text, time, date: toDateKey(receivedAt), outgoing: false, underlineDateTime: true };
   }
 
+  function historicalSamples() {
+    return [
+      { daysAgo: 2, time: "10:15", board: "0877" },
+      { daysAgo: 2, time: "16:21", board: "0925" },
+      { daysAgo: 1, time: "07:32", board: "0820" },
+      { daysAgo: 1, time: "14:43", board: "0901" },
+      { daysAgo: 1, time: "19:32", board: "0877" }
+    ];
+  }
+
+  function createHistoricalOutgoingMessages() {
+    return historicalSamples().map((sample) => {
+      const date = dateDaysAgo(sample.daysAgo);
+      const [hours, minutes] = sample.time.split(":").map(Number);
+      date.setHours(hours, minutes, 0, 0);
+      return {
+        id: `history-user-${toDateKey(date)}-${sample.time}`,
+        text: sample.board,
+        time: sample.time,
+        date: toDateKey(date),
+        outgoing: true
+      };
+    });
+  }
+
+  function createHistoricalMessages() {
+    return historicalSamples().flatMap((sample) => {
+      const date = dateDaysAgo(sample.daysAgo);
+      const [hours, minutes] = sample.time.split(":").map(Number);
+      date.setHours(hours, minutes, 0, 0);
+      return [
+        {
+          id: `history-user-${toDateKey(date)}-${sample.time}`,
+          text: sample.board,
+          time: sample.time,
+          date: toDateKey(date),
+          outgoing: true
+        },
+        createTicketReply(sample.board, date)
+      ];
+    });
+  }
   function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
     const sentAt = new Date();
     const time = formatTime(sentAt);
-    messages.push({ id: createId(), text, time, outgoing: true });
+    messages.push({ id: createId(), text, time, date: toDateKey(sentAt), outgoing: true });
     messages.push(createTicketReply(text, sentAt));
     persistMessages();
     renderMessages();
@@ -182,14 +302,33 @@
     optionsDialog.close();
     menuButton.setAttribute("aria-expanded", "false");
   }
+  contactForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const value = contactInput.value.trim();
+    if (!value) {
+      contactInput.setCustomValidity("Enter a contact name or number.");
+      contactInput.reportValidity();
+      return;
+    }
+    contactInput.setCustomValidity("");
+    contactName = value;
+    updateContactName(contactName);
+    try {
+      localStorage.setItem(CONTACT_STORAGE_KEY, contactName);
+    } catch (error) {
+      console.warn("Contact name could not be saved in this browser.", error);
+    }
+    closeMenu();
+  });
+  contactInput.addEventListener("input", () => contactInput.setCustomValidity(""));
   closeMenuButton.addEventListener("click", closeMenu);
   optionsDialog.addEventListener("click", (event) => {
     if (event.target === optionsDialog) closeMenu();
   });
   optionsDialog.addEventListener("close", () => menuButton.setAttribute("aria-expanded", "false"));
   resetButton.addEventListener("click", () => {
-    if (!window.confirm("Reset this conversation and remove all saved messages?")) return;
-    messages = [];
+    if (!window.confirm("Reset this conversation to the five default ticket exchanges?")) return;
+    messages = createHistoricalMessages();
     persistMessages();
     renderMessages();
     closeMenu();

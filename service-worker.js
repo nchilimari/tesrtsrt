@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "sms-chat-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.1`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.5`;
 const APP_SHELL = [
   "./",
   "./index.html",
